@@ -39,6 +39,28 @@ function stripExtension(name: string): string {
   return name;
 }
 
+// "part 1 of 2", "part 1", "disc 3 of 12", and a bare "1 of 2" fallback.
+const PART_LABEL_RE = new RegExp(
+  `\\b(?:${PART_WORD})\\.?\\s*\\d+(?:\\s*(?:of|\\/)\\s*\\d+)?\\b|\\b\\d+\\s*of\\s*\\d+\\b`,
+  "i",
+);
+
+/**
+ * Extract a multi-part designation (e.g. "part 1 of 2") from a filename so it
+ * can be appended back onto the destination filename. Matching strips it to
+ * find the title; this preserves it so `Title part 1 of 2.m4b` and
+ * `Title part 2 of 2.m4b` land side by side instead of colliding. Original
+ * casing is preserved; only separators are tidied.
+ */
+export function extractPart(rawName: string): string | undefined {
+  const cleaned = stripExtension(rawName)
+    .replace(/[_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const m = cleaned.match(PART_LABEL_RE);
+  return m ? m[0].replace(/\s+/g, " ").trim() : undefined;
+}
+
 /** Parse a raw filename into a clean lookup query and candidate field halves. */
 export function parseFilename(rawName: string): ParsedName {
   const original = stripExtension(rawName)

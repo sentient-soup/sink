@@ -63,6 +63,9 @@ export interface IngestItem {
   size: number;
   mediaTypeId: MediaTypeId;
   ext: string;
+  /** Multi-part designation parsed from the filename (e.g. "part 1 of 2"),
+   *  stripped for matching but preserved in the destination filename. */
+  partLabel?: string;
   match?: MatchResult;
   /** Relative destination path under the destination base, derived from template. */
   destRelPath?: string;

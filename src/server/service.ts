@@ -8,6 +8,7 @@ import type {
   MatchResult,
 } from "../shared/types.ts";
 import { loadConfig } from "./config.ts";
+import { extractPart } from "./matching/filename.ts";
 import { allMediaTypes, getMatcher, matcherForExtension } from "./media/registry.ts";
 import { buildDestPath } from "./pathTemplate.ts";
 import { createTransfer } from "./transfer/index.ts";
@@ -49,6 +50,7 @@ async function addFile(
     size,
     mediaTypeId: matcher.info.id,
     ext,
+    partLabel: extractPart(rawName),
     status: "pending",
   };
   items.set(item.id, item);
@@ -93,6 +95,7 @@ async function recomputeDest(item: IngestItem): Promise<void> {
     template,
     item.match.selected,
     item.rawName,
+    item.partLabel,
   ).relPath;
 }
 

@@ -26,6 +26,7 @@ export function buildDestPath(
   template: string,
   values: Record<string, string>,
   rawName: string,
+  partLabel?: string,
 ): BuiltPath {
   const ext = extname(rawName);
 
@@ -38,9 +39,16 @@ export function buildDestPath(
     )
     .filter(Boolean);
 
-  const titleName =
-    sanitizeSegment(values.title ?? "") || basename(rawName, ext);
-  const fileName = `${titleName}${ext}`;
+  // When the title came from a match, re-attach the part designation so
+  // multi-file books keep distinct, non-colliding filenames. When we fall back
+  // to the original filename, the part is already present — leave it alone.
+  const title = sanitizeSegment(values.title ?? "");
+  const fileBase = title
+    ? partLabel
+      ? `${title} ${partLabel}`
+      : title
+    : basename(rawName, ext);
+  const fileName = `${sanitizeSegment(fileBase)}${ext}`;
 
   const folder = segments.join("/");
   const relPath = folder ? `${folder}/${fileName}` : fileName;
