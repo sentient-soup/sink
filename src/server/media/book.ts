@@ -55,6 +55,16 @@ export const bookMatcher: Matcher = {
         : author
           ? `${author} — ${h.title}`
           : h.title;
+      // Non-editable richer metadata, carried through to the OPF sidecar.
+      const extra: Record<string, string> = {};
+      if (h.subtitle) extra.subtitle = h.subtitle;
+      if (h.authors.length) extra.authors = h.authors.join("|");
+      if (h.narrators?.length) extra.narrators = h.narrators.join("|");
+      if (h.publisher) extra.publisher = h.publisher;
+      if (h.language) extra.language = h.language;
+      if (h.asin) extra.asin = h.asin;
+      if (h.description) extra.description = h.description;
+      if (h.genres?.length) extra.genres = h.genres.join("|");
       return {
         values: {
           author,
@@ -64,6 +74,7 @@ export const bookMatcher: Matcher = {
           narrator: h.narrators?.[0] ?? "",
           year: h.year ?? "",
         },
+        extra,
         displayName: label,
         confidence: Number(confidence.toFixed(3)),
         source: h.source,

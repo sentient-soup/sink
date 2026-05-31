@@ -70,6 +70,21 @@ export class SshTransfer implements Transfer {
     }
   }
 
+  async writeText(relPath: string, content: string): Promise<void> {
+    const target = posix.join(this.dest.basePath.replace(/\\/g, "/"), relPath);
+    const { conn, sftp } = await this.connect();
+    try {
+      await this.mkdirp(sftp, posix.dirname(target));
+      await new Promise<void>((resolve, reject) =>
+        sftp.writeFile(target, content, "utf8", (err) =>
+          err ? reject(err) : resolve(),
+        ),
+      );
+    } finally {
+      conn.end();
+    }
+  }
+
   async test(): Promise<void> {
     const { conn, sftp } = await this.connect();
     try {

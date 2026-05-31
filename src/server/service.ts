@@ -10,6 +10,7 @@ import type {
 import { loadConfig } from "./config.ts";
 import { extractPart } from "./matching/filename.ts";
 import { allMediaTypes, getMatcher, matcherForExtension } from "./media/registry.ts";
+import { buildOpf } from "./metadata/opf.ts";
 import { buildDestPath } from "./pathTemplate.ts";
 import { createTransfer } from "./transfer/index.ts";
 
@@ -114,6 +115,7 @@ export async function matchItem(id: string): Promise<IngestItem> {
     const best = candidates[0];
     const match: MatchResult = {
       selected: best ? { ...best.values } : {},
+      extra: best?.extra ? { ...best.extra } : undefined,
       confidence: best?.confidence ?? 0,
       candidates,
       lowConfidence: (best?.confidence ?? 0) < cfg.confidenceThreshold,
@@ -168,6 +170,7 @@ export async function chooseCandidate(
   if (!cand) throw new Error("Candidate not found");
   const cfg = await loadConfig();
   item.match.selected = { ...cand.values };
+  item.match.extra = cand.extra ? { ...cand.extra } : undefined;
   item.match.confidence = cand.confidence;
   item.match.lowConfidence = cand.confidence < cfg.confidenceThreshold;
   await recomputeDest(item);
@@ -189,7 +192,17 @@ export async function sendItem(id: string): Promise<IngestItem> {
 
   item.status = "sending";
   try {
-    await createTransfer(dest).send(item.originPath, item.destRelPath);
+    const transfer = createTransfer(dest);
+    await transfer.send(item.originPath, item.destRelPath);
+    // Drop a metadata.opf next to the book so Audiobookshelf gets every field.
+    if (cfg.writeOpf && item.mediaTypeId === "book" && item.match) {
+      const opf = buildOpf(item.match.selected, item.match.extra ?? {});
+      const folder = item.destRelPath.split("/").slice(0, -1).join("/");
+      await transfer.writeText(
+        folder ? `${folder}/metadata.opf` : "metadata.opf",
+        opf,
+      );
+    }
     item.status = "done";
     item.error = undefined;
   } catch (err) {

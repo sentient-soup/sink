@@ -394,6 +394,20 @@ table.ingest td {
   font-family: monospace;
   font-size: 11px;
 }
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.check input {
+  width: auto;
+  margin-top: 3px;
+}
+.check small {
+  font-size: 12px;
+}
 
 .dest {
   border: 1px solid var(--border);

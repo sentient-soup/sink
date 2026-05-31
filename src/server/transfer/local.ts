@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir } from "node:fs/promises";
+import { access, copyFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Destination } from "../../shared/types.ts";
 import type { Transfer } from "./transfer.ts";
@@ -11,6 +11,12 @@ export class LocalTransfer implements Transfer {
     const target = join(this.dest.basePath, relPath);
     await mkdir(dirname(target), { recursive: true });
     await copyFile(localPath, target);
+  }
+
+  async writeText(relPath: string, content: string): Promise<void> {
+    const target = join(this.dest.basePath, relPath);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, content, "utf8");
   }
 
   async test(): Promise<void> {

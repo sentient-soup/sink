@@ -81,6 +81,17 @@ export function Settings({ state, onSave, onTest }: Props) {
             onChange={(e) => patch({ confidenceThreshold: Number(e.target.value) })}
           />
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={cfg.writeOpf}
+            onChange={(e) => patch({ writeOpf: e.target.checked })}
+          />
+          <span>
+            Write <code>metadata.opf</code> sidecar next to each book
+            <small className="muted"> — Audiobookshelf reads series, narrator, description &amp; more</small>
+          </span>
+        </label>
       </section>
 
       <section className="card">

@@ -6,12 +6,32 @@
 
 export interface BookHit {
   title: string;
+  subtitle?: string;
   authors: string[];
   narrators?: string[];
   series?: string;
   seriesIndex?: string;
+  publisher?: string;
+  language?: string;
+  asin?: string;
+  description?: string;
+  genres?: string[];
   year?: string;
   source: string;
+}
+
+/** Strip HTML tags + decode the few entities Audible summaries use. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const TIMEOUT_MS = 8000;
@@ -54,7 +74,8 @@ async function audible(query: string, region: string): Promise<BookHit[]> {
     keywords: query,
     num_results: "10",
     products_sort_by: "Relevance",
-    response_groups: "contributors,series,product_attrs,product_desc",
+    response_groups:
+      "contributors,series,product_attrs,product_desc,product_extended_attrs,category_ladders",
   });
   const data = await getJson(`https://${host}/1.0/catalog/products?${params}`);
   if (!data?.products) return [];
@@ -65,12 +86,25 @@ async function audible(query: string, region: string): Promise<BookHit[]> {
       // that's the series the folder layout cares about.
       const seriesList: any[] = p.series ?? [];
       const series = seriesList.find((s) => s.sequence) ?? seriesList[0];
+      // Flatten category ladders into a de-duped genre list (drop the generic
+      // top-level "Audiobooks" bucket).
+      const genres = new Set<string>();
+      for (const cl of p.category_ladders ?? [])
+        for (const node of cl.ladder ?? [])
+          if (node.name && node.name !== "Audiobooks") genres.add(node.name);
+      const summary = p.publisher_summary || p.merchandising_summary || "";
       return {
         title: p.title ?? "",
+        subtitle: p.subtitle || undefined,
         authors: (p.authors ?? []).map((a: any) => a.name).filter(Boolean),
         narrators: (p.narrators ?? []).map((n: any) => n.name).filter(Boolean),
         series: series?.title || undefined,
         seriesIndex: series?.sequence || undefined,
+        publisher: p.publisher_name || undefined,
+        language: p.language || undefined,
+        asin: p.asin || undefined,
+        description: summary ? stripHtml(summary) : undefined,
+        genres: genres.size ? [...genres] : undefined,
         year: p.release_date ? String(p.release_date).slice(0, 4) : undefined,
         source: "audible",
       };

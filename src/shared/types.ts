@@ -28,8 +28,11 @@ export interface MediaTypeInfo {
 
 /** A single metadata guess for a file, with a 0..1 confidence. */
 export interface MatchCandidate {
-  /** field key -> value */
+  /** field key -> value (editable core fields shown in the UI) */
   values: Record<string, string>;
+  /** Extra metadata not shown as editable fields but written to sidecars
+   *  (e.g. description, genres, publisher, asin, all authors/narrators). */
+  extra?: Record<string, string>;
   displayName: string;
   confidence: number;
   source: string;
@@ -38,6 +41,8 @@ export interface MatchCandidate {
 export interface MatchResult {
   /** Current field values (may be user-overridden). */
   selected: Record<string, string>;
+  /** Extra metadata from the chosen candidate (carried to sidecars). */
+  extra?: Record<string, string>;
   confidence: number;
   candidates: MatchCandidate[];
   /** True when confidence is under the configured threshold. */
@@ -101,6 +106,8 @@ export interface AppConfig {
   ingestFolder: string;
   /** 0..1; matches below this are flagged as low confidence. */
   confidenceThreshold: number;
+  /** Write a metadata.opf sidecar next to transferred books (Audiobookshelf). */
+  writeOpf: boolean;
   activeDestinationId?: string;
   destinations: Destination[];
   mediaTypes: Record<MediaTypeId, MediaTypeConfig>;

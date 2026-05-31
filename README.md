@@ -12,7 +12,7 @@ The project is designed from the ground up to be media-agnostic. Audiobooks and 
 2. **Auto-match metadata** — each filename is parsed (part numbers, quality tags, etc. stripped) and looked up against the **Audible catalog** — the same source Audiobookshelf uses — which returns series, series position, and narrator. Open Library + Google Books are automatic fallbacks if Audible is unreachable. Sink ranks candidates and shows a **confidence score**, flagging anything below your threshold so messy one-offs are easy to spot.
 3. **Preview the destination** — using an *arr-style folder template (`{author}/{series}/{title}`), Sink shows exactly where each file will land. Empty tokens (e.g. a book with no series) collapse automatically.
 4. **Override anything** — expand a row to edit the matched fields or pick a different candidate. Manual edits are treated as fully confident.
-5. **Send** — copy the file to the active destination: a **local/mounted path** or a **remote server over SSH/SFTP**. Folders are created as needed.
+5. **Send** — copy the file to the active destination: a **local/mounted path** or a **remote server over SSH/SFTP**. Folders are created as needed. For books, Sink also drops a **`metadata.opf`** sidecar in the book folder, which Audiobookshelf reads on scan — so author, series, series sequence, narrator(s), description, genres, publisher, language, year, and ASIN all land as proper fields (not a stuffed title). Toggle in Settings.
 
 ## Quick start
 
@@ -39,7 +39,7 @@ src/
   shared/types.ts          domain types shared by client & server
   server/
     media/                 registry + per-type matchers (book.ts)
-    metadata/              metadata providers (Audible primary; OL/Google fallback)
+    metadata/              providers (Audible primary; OL/Google fallback) + OPF sidecar
     matching/              filename parsing + similarity / confidence scoring
     transfer/              Transfer interface + Local and SSH implementations
     pathTemplate.ts        token template → sanitized destination path

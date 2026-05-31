@@ -12,6 +12,7 @@ const CONFIG_PATH = join(DATA_DIR, "config.json");
 const DEFAULT_CONFIG: AppConfig = {
   ingestFolder: join(DATA_DIR, "ingest"),
   confidenceThreshold: 0.6,
+  writeOpf: true,
   activeDestinationId: undefined,
   destinations: [],
   mediaTypes: {
