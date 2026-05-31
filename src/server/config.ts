@@ -12,7 +12,9 @@ const CONFIG_PATH = join(DATA_DIR, "config.json");
 const DEFAULT_CONFIG: AppConfig = {
   ingestFolder: join(DATA_DIR, "ingest"),
   confidenceThreshold: 0.6,
-  writeOpf: true,
+  // Off by default: most audiobooks already carry embedded tags, which ASB
+  // reads directly. Enable as a fallback for files that arrive without them.
+  writeOpf: false,
   activeDestinationId: undefined,
   destinations: [],
   mediaTypes: {

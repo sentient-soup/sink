@@ -88,8 +88,8 @@ export function Settings({ state, onSave, onTest }: Props) {
             onChange={(e) => patch({ writeOpf: e.target.checked })}
           />
           <span>
-            Write <code>metadata.opf</code> sidecar next to each book
-            <small className="muted"> — Audiobookshelf reads series, narrator, description &amp; more</small>
+            Write <code>metadata.opf</code> sidecar
+            <small className="muted"> — fallback for files that arrive without embedded tags; ASB reads it on scan</small>
           </span>
         </label>
       </section>

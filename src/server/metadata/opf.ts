@@ -42,8 +42,10 @@ export function buildOpf(
     : core.narrator
       ? [core.narrator]
       : [];
+  // ASB reads narrators from dc:creator role="nrt" (it does not read
+  // dc:contributor), so emit narrators as creators.
   for (const n of narrators)
-    lines.push(`    <dc:contributor opf:role="nrt">${esc(n)}</dc:contributor>`);
+    lines.push(`    <dc:creator opf:role="nrt">${esc(n)}</dc:creator>`);
 
   if (extra.description)
     lines.push(`    <dc:description>${esc(extra.description)}</dc:description>`);
