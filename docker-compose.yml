@@ -7,9 +7,18 @@ services:
       - "6720:6720"
     volumes:
       - sink-data:/app/data
+      # Host folders the container ingests from and delivers to. Remote uploads
+      # land in the ingest folder; "Send" copies the cleaned file into media.
+      # (.tus-incoming under ingest keeps resumable chunks on the same volume
+      # so completion is an instant rename, not a multi-GB copy.)
+      - ./ingest:/app/data/ingest
+      - ./media:/media
     environment:
       NODE_ENV: production
       PORT: "6720"
+      # Required to expose Sink beyond your LAN: gates the whole API + uploads
+      # behind a shared token. Leave unset for local-only use.
+      SINK_TOKEN: "${SINK_TOKEN:-}"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:6720/api/state',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""]
       interval: 30s

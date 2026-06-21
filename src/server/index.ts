@@ -1,38 +1,49 @@
-import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import multer from "multer";
-import { STAGING_DIR, loadConfig, saveConfig } from "./config.ts";
+import { loadConfig, saveConfig } from "./config.ts";
 import {
-  addDropped,
   chooseCandidateGroup,
   confirmGroup,
   getState,
   matchAll,
   matchGroup,
-  matchItem,
   removeGroup,
   scanIngest,
   selectGroup,
   sendGroup,
 } from "./service.ts";
 import { createTransfer } from "./transfer/index.ts";
+import { createUploadServer } from "./uploads.ts";
 import type { Destination } from "../shared/types.ts";
 
 const PORT = Number(process.env.PORT ?? 6720);
+const TOKEN = process.env.SINK_TOKEN;
 const root = join(fileURLToPath(import.meta.url), "..", "..", "..");
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: STAGING_DIR,
-    filename: (_req, file, cb) =>
-      cb(null, `${randomUUID()}__${file.originalname}`),
-  }),
+const app = express();
+
+// Shared-token gate over the whole API (incl. resumable uploads). Open when no
+// SINK_TOKEN is set, for local-only use.
+app.use("/api", (req, res, next) => {
+  if (!TOKEN) return next();
+  const hdr = req.header("authorization");
+  const tok = hdr?.startsWith("Bearer ") ? hdr.slice(7) : req.header("x-sink-token");
+  if (tok === TOKEN) return next();
+  res.status(401).json({ error: "unauthorized" });
 });
 
-const app = express();
+// tus handles raw chunk streams; mount it before the JSON body parser.
+const uploads = await createUploadServer();
+app.use((req, res, next) => {
+  if (req.path === "/api/uploads" || req.path.startsWith("/api/uploads/")) {
+    uploads.handle(req, res).catch(next);
+    return;
+  }
+  next();
+});
+
 app.use(express.json());
 
 // Small async wrapper so handlers can throw.
@@ -48,15 +59,6 @@ app.get("/api/state", h(async (_req, res) => res.json(await getState())));
 app.post("/api/scan", h(async (_req, res) => {
   await scanIngest();
   await matchAll();
-  res.json(await getState());
-}));
-
-app.post("/api/upload", upload.array("files"), h(async (req, res) => {
-  const files = (req.files as Express.Multer.File[]) ?? [];
-  for (const f of files) {
-    const item = await addDropped(f.path, f.originalname, f.size);
-    if (item && item.status === "pending") await matchItem(item.id);
-  }
   res.json(await getState());
 }));
 

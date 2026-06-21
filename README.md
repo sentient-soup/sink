@@ -8,7 +8,7 @@ The project is designed from the ground up to be media-agnostic. Audiobooks and 
 
 ## How it works
 
-1. **Queue files** — Sink watches a configurable *ingest folder* and also accepts files dropped onto (or picked in) the web UI.
+1. **Queue files** — Sink watches a configurable *ingest folder* and also accepts files and **whole folders** dropped onto (or picked in) the web UI. Uploads are **resumable** (tus): a dropped connection picks up where it left off, and large files are chunked so they pass through reverse proxies that cap request bodies. Folder structure is preserved into the ingest folder.
 2. **Auto-match metadata** — each filename is parsed (part numbers, quality tags, etc. stripped) and looked up against the **Audible catalog** — the same source Audiobookshelf uses — which returns series, series position, and narrator. Open Library + Google Books are automatic fallbacks if Audible is unreachable. Sink ranks candidates and shows a **confidence score**, flagging anything below your threshold so messy one-offs are easy to spot.
 3. **Preview the destination** — using an *arr-style folder template (`{author}/{series}/{title}`), Sink shows exactly where each file will land. Empty tokens (e.g. a book with no series) collapse automatically.
 4. **Override anything** — expand a row to edit the matched fields or pick a different candidate. Manual edits are treated as fully confident.
@@ -28,7 +28,15 @@ pnpm build
 pnpm start       # http://localhost:6720
 ```
 
-Then open **Settings** to set your ingest folder, confidence threshold, folder template, Audible region (`us`/`uk`/`de`/…), and at least one destination (mark one *active*). Config and staged uploads live under `data/` (override with `SINK_DATA_DIR`).
+Then open **Settings** to set your ingest folder, confidence threshold, folder template, Audible region (`us`/`uk`/`de`/…), and at least one destination (mark one *active*). Config lives under `data/` (override with `SINK_DATA_DIR`).
+
+## Remote access &amp; uploads
+
+Sink is built to be driven from anywhere, not just the machine it runs on. Drag-and-drop **uploads file contents** (not paths), so a user on another network can drop a folder of audiobooks and it streams into the container's ingest folder; the normal match → confirm → send flow then copies it into your media library.
+
+- **Auth** — set `SINK_TOKEN` to gate the entire API (including uploads) behind a shared token. The UI prompts for it once and remembers it. Without the token set, Sink is open (intended for local-only use). Pair the token with HTTPS — a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) is the easiest way to get TLS and avoid exposing the origin directly.
+- **Large files** — uploads are chunked (48&nbsp;MB) and resumable, so they survive flaky links and slip under proxy body-size caps (e.g. Cloudflare's 100&nbsp;MB). If you front Sink with nginx, set `proxy_request_buffering off;` on the `/api/uploads` location.
+- **Docker** — bind-mount your host ingest and media folders (see [`docker-compose.yml`](docker-compose.yml)) and add a *local* destination pointing at the media mount (`/media`). Keep the resumable-upload staging on the same volume as the ingest folder (the default `.tus-incoming` does) so finished uploads move by rename, not copy.
 
 ## Architecture
 

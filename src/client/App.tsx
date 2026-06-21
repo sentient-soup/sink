@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppState } from "../shared/types.ts";
-import { api } from "./api.ts";
+import { AuthError, api, setToken } from "./api.ts";
 import { Console, signalOf, type Signal } from "./components/Console.tsx";
 import { Settings } from "./components/Settings.tsx";
+import {
+  entriesFromDrop,
+  entriesFromInput,
+  useUploads,
+  type UploadTask,
+} from "./uploads.ts";
 
 type Tab = "ingest" | "settings";
 
@@ -11,8 +17,10 @@ export function App() {
   const [tab, setTab] = useState<Tab>("ingest");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsToken, setNeedsToken] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
 
   // Wrap every mutating call so the UI shows progress + surfaces errors.
   const run = useCallback(async (fn: () => Promise<AppState>) => {
@@ -21,23 +29,31 @@ export function App() {
     try {
       setState(await fn());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (e instanceof AuthError) setNeedsToken(true);
+      else setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }, []);
+
+  // Lightweight refresh used when uploads land (no busy flicker).
+  const refresh = useCallback(() => {
+    api.getState().then(setState).catch(() => {});
+  }, []);
+  const uploads = useUploads(refresh);
 
   useEffect(() => {
     run(api.getState);
   }, [run]);
 
   const onDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      if (e.dataTransfer.files.length) run(() => api.upload(e.dataTransfer.files));
+      const entries = await entriesFromDrop(e.dataTransfer);
+      if (entries.length) uploads.addEntries(entries);
     },
-    [run],
+    [uploads],
   );
 
   const activeDest = state?.config.destinations.find(
@@ -48,6 +64,8 @@ export function App() {
   const count = (s: Signal) => groups.filter((g) => signalOf(g) === s).length;
   const sendable = groups.filter((g) => signalOf(g) === "locked");
   const files = groups.reduce((n, g) => n + g.partCount, 0);
+
+  if (needsToken) return <TokenGate onSubmit={(t) => { setToken(t); setNeedsToken(false); run(api.getState); }} />;
 
   return (
     <div
@@ -121,12 +139,22 @@ export function App() {
               <button disabled={busy} onClick={() => fileInput.current?.click()}>
                 + Add files
               </button>
+              <button disabled={busy} onClick={() => folderInput.current?.click()}>
+                + Add folder
+              </button>
               <input
                 ref={fileInput}
                 type="file"
                 multiple
                 hidden
-                onChange={(e) => e.target.files && run(() => api.upload(e.target.files!))}
+                onChange={(e) => e.target.files && uploads.addEntries(entriesFromInput(e.target.files))}
+              />
+              <input
+                ref={folderInput}
+                type="file"
+                hidden
+                {...{ webkitdirectory: "", directory: "" }}
+                onChange={(e) => e.target.files && uploads.addEntries(entriesFromInput(e.target.files))}
               />
               <div className="grp">
                 <button
@@ -150,6 +178,10 @@ export function App() {
 
         {error && <div className="banner error">{error}</div>}
         {busy && <div className="progress" />}
+
+        {tab === "ingest" && uploads.tasks.length > 0 && (
+          <UploadPanel tasks={uploads.tasks} onCancel={uploads.cancel} onClear={uploads.clearDone} />
+        )}
 
         {state && tab === "ingest" && (
           <div className="content">
@@ -179,7 +211,7 @@ export function App() {
 
       {dragging && (
         <div className="dropmask">
-          <div>Drop files to ingest</div>
+          <div>Drop files or folders to upload</div>
         </div>
       )}
     </div>
@@ -194,6 +226,88 @@ function Meter({ sig, label, n }: { sig: Signal; label: string; n: number }) {
         {label}
       </span>
       <b className={sig}>{n}</b>
+    </div>
+  );
+}
+
+function fmtSize(bytes: number): string {
+  const mb = bytes / 1024 / 1024;
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
+}
+
+function UploadPanel({
+  tasks,
+  onCancel,
+  onClear,
+}: {
+  tasks: UploadTask[];
+  onCancel: (id: string) => void;
+  onClear: () => void;
+}) {
+  const inFlight = tasks.filter((t) => t.status !== "done").length;
+  return (
+    <div className="uploads">
+      <div className="uploads-head">
+        <span>
+          Uploads <span className="ct">{inFlight} active</span>
+        </span>
+        <button className="ghost" onClick={onClear}>
+          Clear finished
+        </button>
+      </div>
+      {tasks.map((t) => (
+        <div key={t.id} className={`up ${t.status}`}>
+          <div className="up-name" title={t.relativePath}>
+            {t.relativePath}
+            {t.error && <span className="err"> · {t.error}</span>}
+          </div>
+          <div className="up-bar">
+            <span style={{ width: `${t.size ? Math.round((t.sent / t.size) * 100) : 0}%` }} />
+          </div>
+          <div className="up-meta">
+            {t.status === "done"
+              ? "done"
+              : t.status === "error"
+                ? "error"
+                : `${fmtSize(t.sent)} / ${fmtSize(t.size)}`}
+          </div>
+          {t.status !== "done" && (
+            <button className="up-x" onClick={() => onCancel(t.id)} title="Cancel">
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
+  const [value, setValue] = useState("");
+  return (
+    <div className="gate">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (value.trim()) onSubmit(value.trim());
+        }}
+      >
+        <div className="mark">
+          <span className="logo">◢◤</span>
+          <b>Sink</b>
+        </div>
+        <p className="muted">This instance requires an access token.</p>
+        <input
+          autoFocus
+          type="password"
+          placeholder="Access token"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <button className="go" type="submit">
+          Unlock
+        </button>
+      </form>
     </div>
   );
 }
