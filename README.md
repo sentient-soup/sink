@@ -17,15 +17,15 @@ The project is designed from the ground up to be media-agnostic. Audiobooks and 
 ## Quick start
 
 ```bash
-npm install
-npm run dev      # web UI on http://localhost:5173, API on :8787
+pnpm install
+pnpm dev         # web UI on http://localhost:5173, API on :6720
 ```
 
 For a single-process production run (API serves the built UI):
 
 ```bash
-npm run build
-npm start        # http://localhost:8787
+pnpm build
+pnpm start       # http://localhost:6720
 ```
 
 Then open **Settings** to set your ingest folder, confidence threshold, folder template, Audible region (`us`/`uk`/`de`/…), and at least one destination (mark one *active*). Config and staged uploads live under `data/` (override with `SINK_DATA_DIR`).

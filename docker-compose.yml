@@ -1,0 +1,27 @@
+services:
+  app:
+    image: ghcr.io/sentient-soup/sink:latest
+    # build: .   # uncomment to build from source instead of pulling
+    container_name: sink
+    ports:
+      - "6720:6720"
+    volumes:
+      - sink-data:/app/data
+    environment:
+      NODE_ENV: production
+      PORT: "6720"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:6720/api/state',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  sink-data:

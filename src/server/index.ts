@@ -19,7 +19,7 @@ import {
 import { createTransfer } from "./transfer/index.ts";
 import type { Destination } from "../shared/types.ts";
 
-const PORT = Number(process.env.PORT ?? 8787);
+const PORT = Number(process.env.PORT ?? 6720);
 const root = join(fileURLToPath(import.meta.url), "..", "..", "..");
 
 const upload = multer({
