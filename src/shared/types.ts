@@ -113,9 +113,39 @@ export interface AppConfig {
   mediaTypes: Record<MediaTypeId, MediaTypeConfig>;
 }
 
+/**
+ * One title collated from its part files. Multi-part audiobooks arrive as
+ * several files (`Dune pt1`, `Dune pt2`); they share a cleaned filename query,
+ * so the server folds them into a single entry the user decides on once. A
+ * single-file title is just a group of one.
+ */
+export interface TitleGroup {
+  /** Representative member's id — used as the group handle in the API. */
+  id: string;
+  mediaTypeId: MediaTypeId;
+  /** Display title (from the chosen match, else the cleaned filename). */
+  title: string;
+  /** Secondary line, e.g. "Author · Series #1 · Narrator". */
+  subtitle: string;
+  /** Aggregate status (worst/most-active member wins). */
+  status: ItemStatus;
+  /** Worst confidence across parts — that's the one that needs a human. */
+  confidence: number;
+  lowConfidence: boolean;
+  /** Shared destination folder (filename stripped). */
+  destFolder?: string;
+  partCount: number;
+  /** Member files, sorted by part. */
+  items: IngestItem[];
+  /** Representative match: shared metadata + candidate list shown on expand. */
+  match?: MatchResult;
+  error?: string;
+}
+
 /** Payload returned by GET /api/state — everything the UI needs to render. */
 export interface AppState {
   config: AppConfig;
   mediaTypes: MediaTypeInfo[];
-  items: IngestItem[];
+  /** Ingest queue collated into one entry per title. */
+  groups: TitleGroup[];
 }

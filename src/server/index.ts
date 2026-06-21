@@ -7,14 +7,16 @@ import multer from "multer";
 import { STAGING_DIR, loadConfig, saveConfig } from "./config.ts";
 import {
   addDropped,
-  chooseCandidate,
+  chooseCandidateGroup,
+  confirmGroup,
   getState,
   matchAll,
+  matchGroup,
   matchItem,
-  removeItem,
+  removeGroup,
   scanIngest,
-  sendItem,
-  updateSelection,
+  selectGroup,
+  sendGroup,
 } from "./service.ts";
 import { createTransfer } from "./transfer/index.ts";
 import type { Destination } from "../shared/types.ts";
@@ -58,28 +60,33 @@ app.post("/api/upload", upload.array("files"), h(async (req, res) => {
   res.json(await getState());
 }));
 
-app.post("/api/items/:id/match", h(async (req, res) => {
-  await matchItem(req.params.id);
+app.post("/api/groups/:id/match", h(async (req, res) => {
+  await matchGroup(req.params.id);
   res.json(await getState());
 }));
 
-app.post("/api/items/:id/select", h(async (req, res) => {
-  await updateSelection(req.params.id, req.body.values ?? {});
+app.post("/api/groups/:id/select", h(async (req, res) => {
+  await selectGroup(req.params.id, req.body.values ?? {});
   res.json(await getState());
 }));
 
-app.post("/api/items/:id/candidate", h(async (req, res) => {
-  await chooseCandidate(req.params.id, Number(req.body.index));
+app.post("/api/groups/:id/candidate", h(async (req, res) => {
+  await chooseCandidateGroup(req.params.id, Number(req.body.index));
   res.json(await getState());
 }));
 
-app.post("/api/items/:id/send", h(async (req, res) => {
-  await sendItem(req.params.id);
+app.post("/api/groups/:id/confirm", h(async (req, res) => {
+  await confirmGroup(req.params.id);
   res.json(await getState());
 }));
 
-app.delete("/api/items/:id", h(async (req, res) => {
-  removeItem(req.params.id);
+app.post("/api/groups/:id/send", h(async (req, res) => {
+  await sendGroup(req.params.id);
+  res.json(await getState());
+}));
+
+app.delete("/api/groups/:id", h(async (req, res) => {
+  removeGroup(req.params.id);
   res.json(await getState());
 }));
 

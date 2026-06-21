@@ -18,14 +18,15 @@ const post = (url: string, body?: unknown) =>
 export const api = {
   getState: () => fetch("/api/state").then(json<AppState>),
   scan: () => post("/api/scan"),
-  match: (id: string) => post(`/api/items/${id}/match`),
+  match: (id: string) => post(`/api/groups/${id}/match`),
   select: (id: string, values: Record<string, string>) =>
-    post(`/api/items/${id}/select`, { values }),
+    post(`/api/groups/${id}/select`, { values }),
   candidate: (id: string, index: number) =>
-    post(`/api/items/${id}/candidate`, { index }),
-  send: (id: string) => post(`/api/items/${id}/send`),
+    post(`/api/groups/${id}/candidate`, { index }),
+  confirm: (id: string) => post(`/api/groups/${id}/confirm`),
+  send: (id: string) => post(`/api/groups/${id}/send`),
   remove: (id: string) =>
-    fetch(`/api/items/${id}`, { method: "DELETE" }).then(json<AppState>),
+    fetch(`/api/groups/${id}`, { method: "DELETE" }).then(json<AppState>),
   saveConfig: (cfg: Partial<AppConfig>) => post("/api/config", cfg),
   upload: (files: FileList | File[]) => {
     const fd = new FormData();
