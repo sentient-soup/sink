@@ -9,6 +9,13 @@ export const DATA_DIR = process.env.SINK_DATA_DIR ?? join(root, "data");
 export const STAGING_DIR = join(DATA_DIR, "staging");
 const CONFIG_PATH = join(DATA_DIR, "config.json");
 
+// Operator override: when set, the ingest folder is fixed by env and wins over
+// whatever is saved in config.json (handy in Docker, where the path is a mount).
+const INGEST_OVERRIDE = process.env.SINK_INGEST_DIR;
+function withOverrides(cfg: AppConfig): AppConfig {
+  return INGEST_OVERRIDE ? { ...cfg, ingestFolder: INGEST_OVERRIDE } : cfg;
+}
+
 const DEFAULT_CONFIG: AppConfig = {
   ingestFolder: join(DATA_DIR, "ingest"),
   confidenceThreshold: 0.6,
@@ -36,20 +43,20 @@ export async function loadConfig(): Promise<AppConfig> {
   if (existsSync(CONFIG_PATH)) {
     try {
       const raw = JSON.parse(await readFile(CONFIG_PATH, "utf8"));
-      cache = { ...DEFAULT_CONFIG, ...raw };
+      cache = withOverrides({ ...DEFAULT_CONFIG, ...raw });
       return cache!;
     } catch {
       // Corrupt config — fall back to defaults rather than crash.
     }
   }
-  cache = structuredClone(DEFAULT_CONFIG);
+  cache = withOverrides(structuredClone(DEFAULT_CONFIG));
   await writeFile(CONFIG_PATH, JSON.stringify(cache, null, 2));
   return cache;
 }
 
 export async function saveConfig(next: Partial<AppConfig>): Promise<AppConfig> {
   const current = await loadConfig();
-  cache = { ...current, ...next };
+  cache = withOverrides({ ...current, ...next });
   await writeFile(CONFIG_PATH, JSON.stringify(cache, null, 2));
   return cache;
 }

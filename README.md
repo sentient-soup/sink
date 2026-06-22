@@ -28,7 +28,7 @@ pnpm build
 pnpm start       # http://localhost:6720
 ```
 
-Then open **Settings** to set your ingest folder, confidence threshold, folder template, Audible region (`us`/`uk`/`de`/…), and at least one destination (mark one *active*). Config lives under `data/` (override with `SINK_DATA_DIR`).
+Then open **Settings** to set your ingest folder, confidence threshold, folder template, Audible region (`us`/`uk`/`de`/…), and at least one destination (mark one *active*). Config lives under `data/` (override with `SINK_DATA_DIR`); the ingest folder defaults to `data/ingest` and can be pinned with `SINK_INGEST_DIR` (which wins over the saved setting, handy when it's a Docker mount).
 
 ## Remote access &amp; uploads
 
