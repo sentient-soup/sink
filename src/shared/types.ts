@@ -71,6 +71,11 @@ export interface IngestItem {
   /** Multi-part designation parsed from the filename (e.g. "part 1 of 2"),
    *  stripped for matching but preserved in the destination filename. */
   partLabel?: string;
+  /** Set when the file lives in its own subfolder under the ingest root (a
+   *  folder-per-book audiobook, or an upload that kept its folder). Parts of
+   *  such a title collate by this folder, match by its name, and keep their
+   *  original filenames at the destination. */
+  groupDir?: string;
   match?: MatchResult;
   /** Relative destination path under the destination base, derived from template. */
   destRelPath?: string;

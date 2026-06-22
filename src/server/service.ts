@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, stat, unlink } from "node:fs/promises";
-import { extname, join } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import type {
   AppState,
   IngestItem,
@@ -31,11 +31,15 @@ export function listItems(): IngestItem[] {
   return [...items.values()].sort((a, b) => a.rawName.localeCompare(b.rawName));
 }
 
-// Parts of one title share a cleaned filename query (parseFilename strips the
-// "part N of M" designation), so that query keyed by media type collates them.
-// ponytail: a query collision between two different titles would over-merge;
-// acceptable for a session tool, revisit with a per-match key if it bites.
+// A file in its own subfolder is one title with the rest of that folder
+// (folder-per-book audiobooks split into per-chapter files, or an upload that
+// kept its folder). Files sitting flat in the ingest root collate instead by
+// their cleaned filename query, since parseFilename strips the "part N of M"
+// designation so "Dune pt 1/2" still fold together.
+// ponytail: a query collision between two different flat titles would
+// over-merge; acceptable for a session tool, revisit with a per-match key.
 function groupKey(it: IngestItem): string {
+  if (it.groupDir) return `dir:${it.groupDir}`;
   return `${it.mediaTypeId} ${parseFilename(it.rawName).query.toLowerCase()}`;
 }
 
@@ -144,6 +148,7 @@ async function addFile(
   rawName: string,
   size: number,
   source: IngestItem["source"],
+  ingestRoot: string,
 ): Promise<IngestItem | null> {
   const ext = extname(rawName).toLowerCase();
   const matcher = matcherForExtension(ext);
@@ -152,6 +157,10 @@ async function addFile(
   for (const it of items.values()) {
     if (it.originPath === originPath) return it;
   }
+  // A file directly in the ingest root has no owning folder; one nested in a
+  // subfolder belongs to that folder's title.
+  const parent = dirname(originPath);
+  const groupDir = resolve(parent) === resolve(ingestRoot) ? undefined : parent;
   const item: IngestItem = {
     id: randomUUID(),
     source,
@@ -161,6 +170,7 @@ async function addFile(
     mediaTypeId: matcher.info.id,
     ext,
     partLabel: extractPart(rawName),
+    groupDir,
     status: "pending",
   };
   items.set(item.id, item);
@@ -185,7 +195,7 @@ export async function scanIngest(): Promise<IngestItem[]> {
         await walk(full);
       } else if (e.isFile()) {
         const s = await stat(full);
-        const item = await addFile(full, e.name, s.size, "folder");
+        const item = await addFile(full, e.name, s.size, "folder", cfg.ingestFolder);
         if (item) added.push(item);
       }
     }
@@ -203,7 +213,8 @@ export async function registerUpload(
   rawName: string,
   size: number,
 ): Promise<void> {
-  const item = await addFile(fullPath, rawName, size, "drop");
+  const cfg = await loadConfig();
+  const item = await addFile(fullPath, rawName, size, "drop", cfg.ingestFolder);
   if (item && item.status === "pending") await matchItem(item.id);
 }
 
@@ -221,6 +232,9 @@ async function recomputeDest(item: IngestItem): Promise<void> {
     item.match.selected,
     item.rawName,
     item.partLabel,
+    // A folder-per-book part keeps its original (chapter) filename; only the
+    // owning folder is rewritten from the book's metadata.
+    Boolean(item.groupDir),
   ).relPath;
 }
 
@@ -235,7 +249,10 @@ export async function matchItem(id: string): Promise<IngestItem> {
   item.status = "matching";
   try {
     const region = cfg.mediaTypes[item.mediaTypeId]?.region;
-    const candidates = await matcher.match(item.rawName, { region });
+    // For a folder-per-book title, the folder name carries the book title; the
+    // individual filenames are just chapters. Match on the folder name.
+    const matchName = item.groupDir ? basename(item.groupDir) : item.rawName;
+    const candidates = await matcher.match(matchName, { region });
     const best = candidates[0];
     const match: MatchResult = {
       selected: best ? { ...best.values } : {},
@@ -260,16 +277,46 @@ export async function matchItem(id: string): Promise<IngestItem> {
 // which exhausted the process. ponytail: fixed pool, raise if throughput lags.
 const MATCH_CONCURRENCY = 5;
 
+/**
+ * Match one representative of a title, then copy its metadata onto every other
+ * part. Parts of a title share all metadata and differ only in filename, so a
+ * single provider lookup serves the whole group — a 200-chapter folder costs
+ * one call, not 200. Each part still derives its own destination path.
+ */
+async function matchAndFanOut(members: IngestItem[]): Promise<void> {
+  if (members.length === 0) return;
+  const rep = members[0];
+  await matchItem(rep.id);
+  for (const m of members) {
+    if (m.id === rep.id) continue;
+    m.match = rep.match
+      ? {
+          ...rep.match,
+          selected: { ...rep.match.selected },
+          extra: rep.match.extra ? { ...rep.match.extra } : undefined,
+        }
+      : undefined;
+    m.status = rep.status;
+    m.error = rep.error;
+    await recomputeDest(m);
+  }
+}
+
+/** Group pending items by title and match each title once (see matchAndFanOut). */
 export async function matchAll(): Promise<void> {
-  const pending = listItems().filter((i) => i.status === "pending");
+  const byKey = new Map<string, IngestItem[]>();
+  for (const it of listItems().filter((i) => i.status === "pending")) {
+    const arr = byKey.get(groupKey(it));
+    if (arr) arr.push(it);
+    else byKey.set(groupKey(it), [it]);
+  }
+  const groups = [...byKey.values()];
   let next = 0;
   const worker = async () => {
-    while (next < pending.length) {
-      await matchItem(pending[next++].id);
-    }
+    while (next < groups.length) await matchAndFanOut(groups[next++]);
   };
   await Promise.all(
-    Array.from({ length: Math.min(MATCH_CONCURRENCY, pending.length) }, worker),
+    Array.from({ length: Math.min(MATCH_CONCURRENCY, groups.length) }, worker),
   );
 }
 
@@ -318,7 +365,7 @@ export function removeItem(id: string): void {
 // --- Group actions: a user decides on a title once; we fan out to its parts.
 
 export async function matchGroup(id: string): Promise<void> {
-  await Promise.all(membersOf(id).map((m) => matchItem(m.id)));
+  await matchAndFanOut(membersOf(id));
 }
 
 export async function selectGroup(
