@@ -1,0 +1,10 @@
+#!/bin/sh
+# Bump the patch version every commit so the running build's version (shown in
+# the sidebar) changes whenever the code does — handy when watchtower swaps the
+# image out from under you. Skips when package.json is already staged for a
+# deliberate version change.
+if git diff --cached --name-only | grep -qx package.json; then
+  exit 0
+fi
+npm version patch --no-git-tag-version --allow-same-version >/dev/null
+git add package.json

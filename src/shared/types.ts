@@ -151,4 +151,7 @@ export interface AppState {
   mediaTypes: MediaTypeInfo[];
   /** Ingest queue collated into one entry per title. */
   groups: TitleGroup[];
+  /** package.json version of the running build — surfaced so an auto-updated
+   *  image is recognizable in the UI. */
+  version: string;
 }

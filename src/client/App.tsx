@@ -138,6 +138,8 @@ export function App() {
             <b className="muted">None configured</b>
           )}
         </div>
+
+        {state && <div className="version muted">v{state.version}</div>}
       </aside>
 
       <main className="panel">
