@@ -98,6 +98,10 @@ code{font-size:12px}
 .progress{height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);background-size:40% 100%;animation:slide 1s linear infinite}
 @keyframes slide{from{background-position:-40% 0}to{background-position:140% 0}}
 
+.working{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--border);background:var(--panel-2);font-size:12px;color:var(--cyan);letter-spacing:.3px}
+.spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 .content{padding:0}
 
 .empty{text-align:center;padding:80px 0;margin:24px;border:1px dashed var(--border);border-radius:var(--radius)}

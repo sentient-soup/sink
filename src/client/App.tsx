@@ -75,6 +75,9 @@ export function App() {
   const count = (s: Signal) => groups.filter((g) => signalOf(g) === s).length;
   const sendable = groups.filter((g) => signalOf(g) === "locked");
   const files = groups.reduce((n, g) => n + g.partCount, 0);
+  const matching = groups.filter(
+    (g) => g.status === "pending" || g.status === "matching",
+  ).length;
 
   if (needsToken) return <TokenGate onSubmit={(t) => { setToken(t); setNeedsToken(false); run(api.getState); }} />;
 
@@ -146,7 +149,7 @@ export function App() {
           {tab === "ingest" && (
             <>
               <button disabled={busy} onClick={() => run(api.scan)}>
-                ⟳ Scan folder
+                {busy ? "⟳ Scanning…" : "⟳ Scan folder"}
               </button>
               <button disabled={busy} onClick={() => run(api.scanDupes)}>
                 ⊜ Check duplicates
@@ -192,7 +195,14 @@ export function App() {
         </div>
 
         {error && <div className="banner error">{error}</div>}
-        {busy && <div className="progress" />}
+        {(busy || matching > 0) && <div className="progress" />}
+
+        {tab === "ingest" && matching > 0 && (
+          <div className="working">
+            <span className="spin" />
+            Matching metadata… {groups.length - matching}/{groups.length} titles
+          </div>
+        )}
 
         {tab === "ingest" && uploads.tasks.length > 0 && (
           <UploadPanel tasks={uploads.tasks} onCancel={uploads.cancel} onClear={uploads.clearDone} />
