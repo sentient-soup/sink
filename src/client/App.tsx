@@ -147,6 +147,9 @@ export function App() {
               <button disabled={busy} onClick={() => run(api.scan)}>
                 ⟳ Scan folder
               </button>
+              <button disabled={busy} onClick={() => run(api.scanDupes)}>
+                ⊜ Check duplicates
+              </button>
               <button disabled={busy} onClick={() => fileInput.current?.click()}>
                 + Add files
               </button>
@@ -205,6 +208,8 @@ export function App() {
               onConfirm={(id) => run(() => api.confirm(id))}
               onSend={(id) => run(() => api.send(id))}
               onRemove={(id) => run(() => api.remove(id))}
+              onIgnoreDup={(id) => run(() => api.ignoreDup(id))}
+              onDeleteDup={(id) => run(() => api.deleteFiles(id))}
             />
           </div>
         )}

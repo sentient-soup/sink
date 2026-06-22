@@ -118,6 +118,15 @@ code{font-size:12px}
 .row:hover{background:#121a16}
 .row.open{background:#121a16}
 
+.dupwarn{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:8px 18px 8px 49px;font-size:13px;
+  background:rgba(255,176,46,.1);border-bottom:1px solid var(--border);
+  border-left:3px solid var(--warn);color:var(--warn);
+}
+.dupwarn code{color:var(--text);background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+.dupwarn .dup-act{display:flex;gap:8px}
+
 .led-btn{padding:4px;background:transparent;border:none}
 .led-btn:hover{border:none;background:transparent}
 .title-cell{cursor:pointer;min-width:0}

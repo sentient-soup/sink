@@ -37,6 +37,9 @@ const post = (url: string, body?: unknown) =>
 export const api = {
   getState: () => fetch("/api/state", { headers: headers() }).then(json<AppState>),
   scan: () => post("/api/scan"),
+  scanDupes: () => post("/api/dupes"),
+  ignoreDup: (id: string) => post(`/api/groups/${id}/ignore-dup`),
+  deleteFiles: (id: string) => post(`/api/groups/${id}/delete`),
   match: (id: string) => post(`/api/groups/${id}/match`),
   select: (id: string, values: Record<string, string>) =>
     post(`/api/groups/${id}/select`, { values }),

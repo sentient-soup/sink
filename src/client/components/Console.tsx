@@ -10,6 +10,8 @@ interface Props {
   onConfirm: (id: string) => void;
   onSend: (id: string) => void;
   onRemove: (id: string) => void;
+  onIgnoreDup: (id: string) => void;
+  onDeleteDup: (id: string) => void;
 }
 
 export type Signal = "fault" | "review" | "xfer" | "locked" | "done";
@@ -104,6 +106,8 @@ function Signal({
   onConfirm,
   onSend,
   onRemove,
+  onIgnoreDup,
+  onDeleteDup,
 }: RowProps) {
   const sel = g.match?.selected ?? {};
   const conf = g.confidence > 0 ? `${Math.round(g.confidence * 100)}%` : "--";
@@ -160,6 +164,22 @@ function Signal({
           )}
         </div>
       </div>
+
+      {g.dupPath && (
+        <div className="dupwarn">
+          <span>
+            ⚠ Possible duplicate of <code>{g.dupPath}</code>
+          </span>
+          <span className="dup-act">
+            <button disabled={disabled} onClick={() => onDeleteDup(g.id)}>
+              Delete ingest file{g.partCount > 1 ? "s" : ""}
+            </button>
+            <button disabled={disabled} onClick={() => onIgnoreDup(g.id)}>
+              Ignore
+            </button>
+          </span>
+        </div>
+      )}
 
       {open && type && (
         <div className="drawer">

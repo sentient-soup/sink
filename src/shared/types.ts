@@ -134,6 +134,9 @@ export interface TitleGroup {
   lowConfidence: boolean;
   /** Shared destination folder (filename stripped). */
   destFolder?: string;
+  /** Existing library folder this title likely duplicates (set by a dupe scan,
+   *  cleared when ignored). Advisory only; the user decides. */
+  dupPath?: string;
   partCount: number;
   /** Member files, sorted by part. */
   items: IngestItem[];

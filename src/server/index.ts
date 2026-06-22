@@ -6,10 +6,13 @@ import { loadConfig, saveConfig } from "./config.ts";
 import {
   chooseCandidateGroup,
   confirmGroup,
+  deleteGroup,
   getState,
+  ignoreDup,
   matchAll,
   matchGroup,
   removeGroup,
+  scanDupes,
   scanIngest,
   selectGroup,
   sendGroup,
@@ -61,6 +64,21 @@ app.post("/api/scan", h(async (_req, res) => {
   // Match in the background so a big folder doesn't hold the request open past
   // proxy timeouts; items show as pending and flip to matched as they resolve.
   matchAll().catch((err) => console.error("background matchAll failed:", err));
+  res.json(await getState());
+}));
+
+app.post("/api/dupes", h(async (_req, res) => {
+  await scanDupes();
+  res.json(await getState());
+}));
+
+app.post("/api/groups/:id/ignore-dup", h(async (req, res) => {
+  ignoreDup(req.params.id);
+  res.json(await getState());
+}));
+
+app.post("/api/groups/:id/delete", h(async (req, res) => {
+  await deleteGroup(req.params.id);
   res.json(await getState());
 }));
 
