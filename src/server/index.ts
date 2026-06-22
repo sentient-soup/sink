@@ -58,7 +58,9 @@ app.get("/api/state", h(async (_req, res) => res.json(await getState())));
 
 app.post("/api/scan", h(async (_req, res) => {
   await scanIngest();
-  await matchAll();
+  // Match in the background so a big folder doesn't hold the request open past
+  // proxy timeouts; items show as pending and flip to matched as they resolve.
+  matchAll().catch((err) => console.error("background matchAll failed:", err));
   res.json(await getState());
 }));
 

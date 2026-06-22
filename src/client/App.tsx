@@ -46,6 +46,17 @@ export function App() {
     run(api.getState);
   }, [run]);
 
+  // While anything is mid-flight (matching after a scan, or sending), poll so
+  // the queue reflects background progress without a manual refresh.
+  const transient = (state?.groups ?? []).some((g) =>
+    ["pending", "matching", "sending"].includes(g.status),
+  );
+  useEffect(() => {
+    if (!transient) return;
+    const t = setInterval(() => api.getState().then(setState).catch(() => {}), 2000);
+    return () => clearInterval(t);
+  }, [transient]);
+
   const onDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
