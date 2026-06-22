@@ -157,7 +157,7 @@ export function App() {
               <button disabled={busy} onClick={() => fileInput.current?.click()}>
                 + Add files
               </button>
-              <button disabled={busy} onClick={() => folderInput.current?.click()}>
+              <button className="folder-only" disabled={busy} onClick={() => folderInput.current?.click()}>
                 + Add folder
               </button>
               <input
