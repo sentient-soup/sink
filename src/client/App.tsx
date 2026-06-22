@@ -95,6 +95,7 @@ export function App() {
             <b>Sink</b>
             <span>ingest</span>
           </div>
+          {state && <span className="version muted">v{state.version}</span>}
         </div>
 
         <nav className="tabs">
@@ -138,8 +139,6 @@ export function App() {
             <b className="muted">None configured</b>
           )}
         </div>
-
-        {state && <div className="version muted">v{state.version}</div>}
       </aside>
 
       <main className="panel">
