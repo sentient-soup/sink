@@ -39,6 +39,26 @@ function fmtSize(bytes: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
 }
 
+/** Collapse part paths to one, replacing the differing middle with "*".
+ *  e.g. ".../Defiance part 1 of 3" + ".../Defiance part 2 of 3"
+ *    -> ".../Defiance part * of 3". A single path is returned as-is. */
+function collapsePaths(paths: string[]): string {
+  if (paths.length === 1) return paths[0];
+  let pre = paths[0];
+  let suf = paths[0];
+  for (const p of paths.slice(1)) {
+    let i = 0;
+    while (i < pre.length && i < p.length && pre[i] === p[i]) i++;
+    pre = pre.slice(0, i);
+    let j = 0;
+    while (j < suf.length && j < p.length && suf[suf.length - 1 - j] === p[p.length - 1 - j]) j++;
+    suf = suf.slice(suf.length - j);
+  }
+  const minLen = Math.min(...paths.map((p) => p.length));
+  if (pre.length + suf.length > minLen) suf = suf.slice(pre.length + suf.length - minLen);
+  return `${pre}*${suf}`;
+}
+
 export function Console(props: Props) {
   const groups = props.state.groups;
   const typeById = new Map<string, MediaTypeInfo>(
@@ -227,6 +247,13 @@ function Signal({
               ))}
             </div>
           )}
+          <div className="route">
+            <span className="muted">Path</span>
+            <code>{collapsePaths(g.items.map((it) => it.originPath))}</code>
+            <span className="arrow">→</span>
+            {g.destFolder ? <code>{g.destFolder}</code> : <span className="muted">no destination</span>}
+          </div>
+
           <div className="drawer-act">
             <button disabled={disabled} onClick={() => onRemove(g.id)}>
               Dismiss title

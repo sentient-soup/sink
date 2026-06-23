@@ -165,6 +165,10 @@ code{font-size:12px}
 .partlist>.muted{font-size:10px;text-transform:uppercase;letter-spacing:1.5px}
 .partlist code{color:#9ee7d0;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:3px 7px}
 .partlist small{color:var(--muted);margin-left:4px}
+.route{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;font-size:11px}
+.route>.muted{font-size:10px;text-transform:uppercase;letter-spacing:1.5px}
+.route code{color:#9ee7d0;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:3px 7px;word-break:break-all}
+.route .arrow{color:var(--cyan);font-size:14px}
 .drawer-act{display:flex;justify-content:flex-end}
 
 .dropmask{position:fixed;inset:0;background:rgba(10,14,13,.88);border:3px dashed var(--cyan);display:grid;place-items:center;z-index:50;font-size:22px;color:var(--cyan);pointer-events:none;font-family:"Barlow Semi Condensed";letter-spacing:1px}
