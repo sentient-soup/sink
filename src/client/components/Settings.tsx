@@ -9,11 +9,12 @@ interface Props {
   state: AppState;
   onSave: (cfg: Partial<AppConfig>) => void;
   onTest: (d: Destination) => Promise<{ ok: boolean; error?: string }>;
+  onResetQueue: () => void;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 9);
 
-export function Settings({ state, onSave, onTest }: Props) {
+export function Settings({ state, onSave, onTest, onResetQueue }: Props) {
   const [cfg, setCfg] = useState<AppConfig>(structuredClone(state.config));
   const [testResult, setTestResult] = useState<Record<string, string>>({});
 
@@ -92,6 +93,21 @@ export function Settings({ state, onSave, onTest }: Props) {
             <small className="muted"> — fallback for files that arrive without embedded tags; ASB reads it on scan</small>
           </span>
         </label>
+        <div className="field">
+          <span>
+            Queue
+            <small className="muted"> — clear the in-memory queue to restart the ingest process (files on disk are kept)</small>
+          </span>
+          <button
+            className="ghost"
+            onClick={() => {
+              if (confirm("Clear the queue? Files on disk are kept; re-scan to repopulate."))
+                onResetQueue();
+            }}
+          >
+            Reset queue
+          </button>
+        </div>
       </section>
 
       <section className="card">

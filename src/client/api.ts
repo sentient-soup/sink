@@ -40,6 +40,8 @@ export const api = {
   scanDupes: () => post("/api/dupes"),
   ignoreDup: (id: string) => post(`/api/groups/${id}/ignore-dup`),
   deleteFiles: (id: string) => post(`/api/groups/${id}/delete`),
+  deleteDone: () => post("/api/done/delete"),
+  resetQueue: () => post("/api/queue/reset"),
   match: (id: string) => post(`/api/groups/${id}/match`),
   select: (id: string, values: Record<string, string>) =>
     post(`/api/groups/${id}/select`, { values }),

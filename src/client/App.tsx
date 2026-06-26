@@ -74,6 +74,7 @@ export function App() {
   const groups = state?.groups ?? [];
   const count = (s: Signal) => groups.filter((g) => signalOf(g) === s).length;
   const sendable = groups.filter((g) => signalOf(g) === "locked");
+  const done = groups.filter((g) => g.status === "done");
   const files = groups.reduce((n, g) => n + g.partCount, 0);
   const matching = groups.filter(
     (g) => g.status === "pending" || g.status === "matching",
@@ -188,6 +189,15 @@ export function App() {
                 >
                   ▸ Send all locked ({sendable.length})
                 </button>
+                <button
+                  disabled={busy || done.length === 0}
+                  onClick={() => {
+                    if (confirm(`Delete ${done.length} sent title(s) from the ingest folder?`))
+                      run(api.deleteDone);
+                  }}
+                >
+                  ✕ Delete done ({done.length})
+                </button>
               </div>
             </>
           )}
@@ -231,6 +241,7 @@ export function App() {
               state={state}
               onSave={(cfg) => run(() => api.saveConfig(cfg))}
               onTest={api.testDestination}
+              onResetQueue={() => run(api.resetQueue)}
             />
           </div>
         )}

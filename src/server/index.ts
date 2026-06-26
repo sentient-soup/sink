@@ -5,7 +5,9 @@ import express from "express";
 import { loadConfig, saveConfig } from "./config.ts";
 import {
   chooseCandidateGroup,
+  clearQueue,
   confirmGroup,
+  deleteDone,
   deleteGroup,
   getState,
   ignoreDup,
@@ -79,6 +81,16 @@ app.post("/api/groups/:id/ignore-dup", h(async (req, res) => {
 
 app.post("/api/groups/:id/delete", h(async (req, res) => {
   await deleteGroup(req.params.id);
+  res.json(await getState());
+}));
+
+app.post("/api/done/delete", h(async (_req, res) => {
+  await deleteDone();
+  res.json(await getState());
+}));
+
+app.post("/api/queue/reset", h(async (_req, res) => {
+  clearQueue();
   res.json(await getState());
 }));
 

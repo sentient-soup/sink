@@ -477,6 +477,28 @@ export async function deleteGroup(id: string): Promise<void> {
   dupWarnings.delete(id);
 }
 
+/** Drop the entire in-memory queue and its dup-scan state. Pairs with a
+ *  re-scan to restart the ingest process from scratch (files stay on disk). */
+export function clearQueue(): void {
+  items.clear();
+  dupWarnings.clear();
+  dupIgnored.clear();
+}
+
+/** Clean up after a send run: delete every sent ("done") file from the ingest
+ *  folder and drop it from the queue. Only touches files already transferred. */
+export async function deleteDone(): Promise<void> {
+  for (const it of [...items.values()]) {
+    if (it.status !== "done") continue;
+    try {
+      await unlink(it.originPath);
+    } catch {
+      // Already gone or unwritable — still drop it from the queue.
+    }
+    items.delete(it.id);
+  }
+}
+
 /** Transfer one item to the active destination. */
 export async function sendItem(id: string): Promise<IngestItem> {
   const item = items.get(id);
